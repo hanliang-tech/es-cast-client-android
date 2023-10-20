@@ -1,0 +1,3 @@
+rootProject.name = "es-cast-client-android"
+include ':app'
+include ':library'

@@ -1,0 +1,45 @@
+apply plugin: 'com.android.library'
+
+def maven_gradle_path = "${project.rootDir}/_scripts/maven.gradle"
+if (file(maven_gradle_path).exists()) apply from: maven_gradle_path
+
+android {
+    compileSdk 32
+
+    defaultConfig {
+        minSdk 17
+        targetSdk 32
+
+        consumerProguardFiles "consumer-rules.pro"
+
+        def f = file("${project.rootDir}/local.properties")
+        if (f.exists()){
+            Properties properties = new Properties()
+            def ips = f.newDataInputStream()
+            properties.load(ips)
+            ips.close()
+
+            buildConfigField("int", "UDP_PROXY_PORT", "${properties.getProperty("udp.proxy.port")}")
+            buildConfigField("byte[]", "UDP_PROXY_HEAD1", "new byte[]{${properties.getProperty("udp.proxy.head1")}}")
+            buildConfigField("byte[]", "UDP_PROXY_HEAD2", "new byte[]{${properties.getProperty("udp.proxy.head2")}}")
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+
+task clearJar(type: Delete) {
+    delete 'build/libs' //jar包的名字，随便命名
+}
+
+dependencies {
+}
