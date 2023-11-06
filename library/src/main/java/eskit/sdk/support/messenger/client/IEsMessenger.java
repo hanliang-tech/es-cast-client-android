@@ -37,6 +37,18 @@ public interface IEsMessenger {
     void stop();
 
     /**
+     * 设置用户Android设备的OAID
+     * @param OAID 用户Android设备的OAID
+     */
+    void setOAID(String OAID);
+
+    /**
+     * 设置用户Android设备的AAID
+     * @param AAID 用户Android设备的AAID
+     */
+    void setAAID(String AAID);
+
+    /**
      * 事件回调
      **/
     interface MessengerCallback {

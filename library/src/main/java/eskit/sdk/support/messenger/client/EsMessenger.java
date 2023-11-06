@@ -46,6 +46,16 @@ public class EsMessenger implements IEsMessenger {
         mUdpHandler = null;
     }
 
+    @Override
+    public void setOAID(String OAID) {
+        Configs.oaid = OAID;
+    }
+
+    @Override
+    public void setAAID(String AAID) {
+        Configs.aaid = AAID;
+    }
+
     public void sendCommand(Context context, EsDevice device, EsCommand command) {
         initUdpServerIfNeed();
         mUdpHandler.sendCommandEvent(context, device, command);

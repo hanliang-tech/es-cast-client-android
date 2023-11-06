@@ -48,6 +48,9 @@ public class MainActivity extends AppCompatActivity implements IEsMessenger.Mess
 
         // 设置SDK回调
         EsMessenger.get().setMessengerCallback(this);
+
+        EsMessenger.get().setOAID("123");
+        EsMessenger.get().setAAID("456");
     }
 
     @Override
@@ -143,7 +146,7 @@ public class MainActivity extends AppCompatActivity implements IEsMessenger.Mess
      **/
     public void startEsApp(View view) {
         if (mCurrentSelectDevice == null) return;
-        EsMessenger.get().sendCommand(this, mCurrentSelectDevice, EsCommand.makeEsAppCommand(START_APP_PKG));
+        EsMessenger.get().sendCommand(this, mCurrentSelectDevice, EsCommand.makeEsAppCommand(START_APP_PKG).setDebug(true));
     }
 
     /**

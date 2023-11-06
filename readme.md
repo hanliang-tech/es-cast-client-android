@@ -1,5 +1,20 @@
 ### 超级投屏-SDK-手机集成文档
+
+<br>
 本sdk封装了发现扩展屏服务的相关接口。
+<br>
+<br>
+<br>
+
+| 版本 | 修改点 |
+|-|-|
+| 1.1.1 | 支持新的设备类型发现 |
+| 1.1.2 | 增加设置`OAID/AAID`接口 |
+
+<br>
+<br>
+<br>
+
 #### 1、集成
 
 ``` java
@@ -12,13 +27,16 @@ allprojects {
 
 # app gradle增加引用
 dependencies {
-    implementation 'com.extscreen.sdk:messenger-client:1.1.0'
+    implementation 'com.extscreen.sdk:messenger-client:1.1.2'
 }
 
 ```
 
 #### 2、sdk调用
 ``` java
+// 设置OAID, 非必传
+EsMessenger.get().setOAID("oaid");
+
 // 注册sdk回调
 EsMessenger.get().setMessengerCallback(MessengerCallback callback);
 
@@ -37,7 +55,12 @@ EsMessenger.get().stop();
 
 具体接口定义
 ``` java
- /**
+    /**
+     * 设置用户Android设备的OAID
+     */
+    void setOAID(String OAID);
+
+    /**
      * 注册消息回调
      **/
     void setMessengerCallback(MessengerCallback callback);

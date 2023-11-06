@@ -14,6 +14,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 
 import eskit.sdk.support.messenger.client.BuildConfig;
+import eskit.sdk.support.messenger.client.Configs;
 import eskit.sdk.support.messenger.client.EsMessenger;
 import eskit.sdk.support.messenger.client.IEsMessenger;
 import eskit.sdk.support.messenger.client.bean.EsDevice;
@@ -204,6 +205,8 @@ public class UdpHandler extends BaseHandlerThread implements UdpCallback {
             PackageInfo pi = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
             jo.put("verc", pi.versionCode);
             jo.put("vern", pi.versionName);
+            jo.put("oaid", !TextUtils.isEmpty(Configs.oaid) ? Configs.oaid : "");
+            jo.put("aaid", !TextUtils.isEmpty(Configs.aaid) ? Configs.aaid : "");
         } catch (Exception ignore) {
         }
         return jo;
