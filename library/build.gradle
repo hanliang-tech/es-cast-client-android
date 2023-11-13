@@ -1,6 +1,6 @@
 apply plugin: 'com.android.library'
 
-def maven_gradle_path = "${project.rootDir}/_scripts/maven.gradle"
+def maven_gradle_path = "${project.rootDir}/maven.gradle"
 if (file(maven_gradle_path).exists()) apply from: maven_gradle_path
 
 android {

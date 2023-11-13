@@ -34,8 +34,12 @@ dependencies {
 
 #### 2、sdk调用
 ``` java
+
 // 设置OAID, 非必传
 EsMessenger.get().setOAID("oaid");
+
+// 设置AAID, 非必传
+EsMessenger.get().setAAID(String AAID);
 
 // 注册sdk回调
 EsMessenger.get().setMessengerCallback(MessengerCallback callback);
@@ -59,6 +63,11 @@ EsMessenger.get().stop();
      * 设置用户Android设备的OAID
      */
     void setOAID(String OAID);
+
+    /**
+    * 设置用户Android设备的AAID
+    */
+    void setAAID(String AAID);
 
     /**
      * 注册消息回调
