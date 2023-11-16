@@ -34,14 +34,6 @@ public class EsCommand {
         put("action", actionName);
     }
 
-    private void put(String key, Object value) {
-        try {
-            mJson.putOpt(key, value);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
     /**
      * 启动快应用
      **/
@@ -82,6 +74,15 @@ public class EsCommand {
 
     public static EsCommand makeCustomCommand(String action) {
         return new EsCommand(action).setCustom(true);
+    }
+
+    public EsCommand put(String key, Object value) {
+        try {
+            mJson.putOpt(key, value);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return this;
     }
 
     /**

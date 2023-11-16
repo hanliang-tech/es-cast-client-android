@@ -1,17 +1,16 @@
-### 超级投屏-SDK-手机集成文档
-
+### 超级投屏-SDK-手机集成文档1.1.3
 <br>
 本sdk封装了发现扩展屏服务的相关接口。
 <br>
 <br>
 <br>
 
-| 版本 | 修改点 |
-|-|-|
-| 1.1.1 | 支持新的设备类型发现 |
-| 1.1.2 | 增加设置`OAID/AAID`接口 |
+| 版本 | 修改点 | 修改日期 |
+|-|-|-|
+| 1.1.1 | 支持新的设备类型发现 |2023-10-19|
+| 1.1.2 | 增加设置`OAID/AAID`[接口](#jump1) |2023-11-06|
+| 1.1.3 | EsCommand暴露`put`方法,详见[#4.1](#jump2)、[#4.2](#jump3) |2023-11-16|
 
-<br>
 <br>
 <br>
 
@@ -27,19 +26,13 @@ allprojects {
 
 # app gradle增加引用
 dependencies {
-    implementation 'com.extscreen.sdk:messenger-client:1.1.2'
+    implementation 'com.extscreen.sdk:messenger-client:1.1.3'
 }
 
 ```
 
-#### 2、sdk调用
+#### <span id="jump1">2、sdk调用</span>
 ``` java
-
-// 设置OAID, 非必传
-EsMessenger.get().setOAID("oaid");
-
-// 设置AAID, 非必传
-EsMessenger.get().setAAID(String AAID);
 
 // 注册sdk回调
 EsMessenger.get().setMessengerCallback(MessengerCallback callback);
@@ -55,19 +48,23 @@ EsMessenger.get().sendCommand(Context context, EsDevice device, EsCommand comman
 
 // 停止并释放资源
 EsMessenger.get().stop();
+
+// 设置OAID, 非必传
+EsMessenger.get().setOAID("oaid");
+
+// 设置AAID, 非必传
+EsMessenger.get().setAAID("aaid");
+
+// 设置用户Android设备的OAID
+void setOAID(String OAID);
+
+// 设置用户Android设备的AAID
+void setAAID(String AAID);
+
 ```
 
 具体接口定义
 ``` java
-    /**
-     * 设置用户Android设备的OAID
-     */
-    void setOAID(String OAID);
-
-    /**
-    * 设置用户Android设备的AAID
-    */
-    void setAAID(String AAID);
 
     /**
      * 注册消息回调
@@ -93,6 +90,16 @@ EsMessenger.get().stop();
      * 停止所有正在进行的任务，释放资源
      **/
     void stop();
+
+    /**
+     * 设置用户Android设备的OAID
+     */
+    void setOAID(String OAID);
+
+    /**
+     * 设置用户Android设备的AAID
+     */
+    void setAAID(String AAID);
 
     /**
      * 事件回调
@@ -152,9 +159,29 @@ override onDestroy(){
 
 #### 4、启动快应用
 ``` kotlin
-EsMessenger.get().sendCommand(this, 
+EsMessenger.get().sendCommand(this,
 selectDevice, // 要发送的目标设备
 EsCommand.makeEsAppCommand("es.hello.world")) // 快应用包名
+```
+
+##### <span id="jump2">4.1、启动快应用并关闭之前的界面</span>
+flags 传 1，表示clearTask，会关掉之前的界面，再打开新的。
+``` kotlin
+EsMessenger.get().sendCommand(this,
+selectDevice, // 要发送的目标设备
+EsCommand.makeEsAppCommand("es.hello.world"), // 快应用包名
+.put("flags",1))
+```
+
+##### <span id="jump3">4.2、复用之前的界面</span>
+`flags` 传 8，表示singleInstance，会复用的界面，不再打开新的。
+但要配合`pageTag`使用，相同pageTag会复用同一界面。
+``` kotlin
+EsMessenger.get().sendCommand(this,
+selectDevice, // 要发送的目标设备
+EsCommand.makeEsAppCommand("es.hello.world"), // 快应用包名
+.put("flags", 8)
+.put("pageTag", "pageTag")) // pageTag可任意定义
 ```
 
 #### 5、启动快应用指定页面并传递参数
