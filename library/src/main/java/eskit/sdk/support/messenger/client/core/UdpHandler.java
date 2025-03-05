@@ -220,27 +220,36 @@ public class UdpHandler extends BaseHandlerThread implements UdpCallback {
         try {
             JSONObject jo = new JSONObject(json);
             int eventType = jo.optInt("type");
-            if (eventType == CMD_SEARCH) {
-                JSONObject data = jo.optJSONObject("data");
-                EsDevice device = new EsDevice();
-                device.setVersion(jo.optInt("version"));
-                device.setDeviceIp(ip);
-                device.setDevicePort(port);
-                device.setDeviceName(data.optString("name"));
-                device.setFrom(data.optString("pkg"));
-                callback.onFindDevice(device);
-            } else if (eventType == CMD_EVENT) {
-                String jsonStr = jo.optString("data");
-                if (isProcessUpdateMessage(jsonStr)) {
-                    mCurrentServerIp = ip;
-                    mCurrentServerPort = port;
-                    return;
+            switch (eventType) {
+                case CMD_PING: {
+                    callback.onPingResponse(ip, port);
                 }
-                EsEvent event = new EsEvent();
-                event.setDeviceIp(ip);
-                event.setDevicePort(port);
-                event.setData(jsonStr);
-                callback.onReceiveEvent(event);
+                break;
+                case CMD_SEARCH: {
+                    JSONObject data = jo.optJSONObject("data");
+                    EsDevice device = new EsDevice();
+                    device.setVersion(jo.optInt("version"));
+                    device.setDeviceIp(ip);
+                    device.setDevicePort(port);
+                    device.setDeviceName(data.optString("name"));
+                    device.setFrom(data.optString("pkg"));
+                    callback.onFindDevice(device);
+                }
+                break;
+                case CMD_EVENT: {
+                    String jsonStr = jo.optString("data");
+                    if (isProcessUpdateMessage(jsonStr)) {
+                        mCurrentServerIp = ip;
+                        mCurrentServerPort = port;
+                        return;
+                    }
+                    EsEvent event = new EsEvent();
+                    event.setDeviceIp(ip);
+                    event.setDevicePort(port);
+                    event.setData(jsonStr);
+                    callback.onReceiveEvent(event);
+                }
+                break;
             }
         } catch (Exception e) {
             e.printStackTrace();

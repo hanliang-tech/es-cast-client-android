@@ -73,6 +73,13 @@ public class MainActivity extends AppCompatActivity implements IEsMessenger.Mess
     //region SDK回调
 
     @Override
+    public void onPingResponse(String deviceIp, int devicePort) {
+        mHandler.post(() -> {
+            Toast.makeText(this, "设备" + deviceIp +":" + devicePort + "在线", Toast.LENGTH_SHORT).show();
+        });
+    }
+
+    @Override
     public void onFindDevice(EsDevice device) {
         mDevices.put(device.getDeviceName(), device);
 
@@ -139,6 +146,15 @@ public class MainActivity extends AppCompatActivity implements IEsMessenger.Mess
             mDeviceAdapter.clear();
             mDeviceAdapter.notifyDataSetChanged();
         }
+    }
+
+    /**
+     * 检测设备是否在线
+     * @param view
+     */
+    public void pingDevice(View view) {
+        if (mCurrentSelectDevice == null) return;
+        EsMessenger.get().ping(this, mCurrentSelectDevice);
     }
 
     /**

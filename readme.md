@@ -10,6 +10,7 @@
 | 1.1.1 | 支持新的设备类型发现 |2023-10-19|
 | 1.1.2 | 增加设置`OAID/AAID`[接口](#jump1) |2023-11-06|
 | 1.1.3 | EsCommand暴露`put`方法,详见[#4.1](#jump2)、[#4.2](#jump3) |2023-11-16|
+| 1.1.4 | MessengerCallback新增[onPingResponse](#jump4)方法 |2025-03-05|
 
 <br>
 <br>
@@ -26,7 +27,7 @@ allprojects {
 
 # app gradle增加引用
 dependencies {
-    implementation 'com.extscreen.sdk:messenger-client:1.1.3'
+    implementation 'com.extscreen.sdk:messenger-client:1.1.4'
 }
 
 ```
@@ -55,56 +56,22 @@ EsMessenger.get().setOAID("oaid");
 // 设置AAID, 非必传
 EsMessenger.get().setAAID("aaid");
 
-// 设置用户Android设备的OAID
-void setOAID(String OAID);
-
-// 设置用户Android设备的AAID
-void setAAID(String AAID);
-
 ```
 
-具体接口定义
+<span id="jump4">事件回调接口</span>
 ``` java
-
-    /**
-     * 注册消息回调
-     **/
-    void setMessengerCallback(MessengerCallback callback);
-
-    /**
-     * 开始搜索
-     **/
-    void search(Context context);
-
-    /**
-     * Ping
-     **/
-    void ping(Context context, EsDevice device);
-
-    /**
-     * 发送命令
-     **/
-    void sendCommand(Context context, EsDevice device, EsCommand command);
-
-    /**
-     * 停止所有正在进行的任务，释放资源
-     **/
-    void stop();
-
-    /**
-     * 设置用户Android设备的OAID
-     */
-    void setOAID(String OAID);
-
-    /**
-     * 设置用户Android设备的AAID
-     */
-    void setAAID(String AAID);
-
     /**
      * 事件回调
      **/
     interface MessengerCallback {
+    
+        /**
+         * Ping设备响应
+         * @param deviceIp
+         * @param devicePort
+         */
+        void onPingResponse(String deviceIp, int devicePort);
+        
         /**
          * 发现设备
          **/
@@ -118,7 +85,10 @@ void setAAID(String AAID);
         void onReceiveEvent(EsEvent event);
     }
 }
+```
 
+Device字段说明
+``` java
 // EsDevivce.java
 public class EsDevice {
     private String deviceName;      // 发现设备的名称

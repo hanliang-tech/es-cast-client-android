@@ -52,6 +52,14 @@ public interface IEsMessenger {
      * 事件回调
      **/
     interface MessengerCallback {
+
+        /**
+         * Ping设备响应
+         * @param deviceIp
+         * @param devicePort
+         */
+        void onPingResponse(String deviceIp, int devicePort);
+
         /**
          * 发现设备
          **/

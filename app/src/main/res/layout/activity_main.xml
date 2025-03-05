@@ -33,6 +33,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:visibility="invisible"
+        tools:visibility="visible"
         android:orientation="vertical">
 
         <Spinner
@@ -40,6 +41,12 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:spinnerMode="dropdown"/>
+
+        <Button
+            android:layout_width="120dp"
+            android:layout_height="wrap_content"
+            android:onClick="pingDevice"
+            android:text="ping设备"/>
 
         <Button
             android:layout_width="120dp"
