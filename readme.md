@@ -1,4 +1,4 @@
-### 超级投屏-SDK-手机集成文档1.1.3
+### 超级投屏-SDK-手机集成文档1.1.4
 <br>
 本sdk封装了发现扩展屏服务的相关接口。
 <br>
@@ -105,6 +105,12 @@ public class EsDevice {
 ``` kotlin
 // 注册SDK回调
 EsMessenger.get().setMessengerCallback(object : IEsMessenger.MessengerCallback {
+
+     override fun onPingResponse(deviceIp: String, devicePort:Int) {
+        handler.post{
+            Toast.makeText(this, "设备 ${deviceIp}:${devicePort} 在线", Toast.LENGTH_LONG).show()
+        }
+    }
     override fun onFindDevice(device: EsDevice) {
         deviceList.add(device)
         // 按发现时间排序
