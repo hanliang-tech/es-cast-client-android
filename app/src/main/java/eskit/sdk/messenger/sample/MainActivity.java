@@ -13,6 +13,7 @@ import android.widget.Toast;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -24,6 +25,8 @@ import eskit.sdk.support.messenger.client.bean.EsEvent;
 import eskit.sdk.support.messenger.client.core.EsCommand;
 
 public class MainActivity extends AppCompatActivity implements IEsMessenger.MessengerCallback, AdapterView.OnItemSelectedListener {
+
+    private static final String TAG = "[-MainActivity-]";
 
     private static final String START_APP_PKG = "es.hello.world";
 
@@ -81,12 +84,14 @@ public class MainActivity extends AppCompatActivity implements IEsMessenger.Mess
 
     @Override
     public void onFindDevice(EsDevice device) {
-        mDevices.put(device.getDeviceName(), device);
+        Log.i(TAG, "onFindDevice " + device);
+        mDevices.put( mDevices.size() + " " + device.getDeviceName(), device);
+        Set<String> keySet = new HashSet<>(mDevices.keySet());
 
         mHandler.post(() -> {
             if (mDeviceAdapter != null) {
                 mDeviceAdapter.clear();
-                mDeviceAdapter.addAll(mDevices.keySet());
+                mDeviceAdapter.addAll(keySet);
                 mDeviceAdapter.notifyDataSetChanged();
             }
         });

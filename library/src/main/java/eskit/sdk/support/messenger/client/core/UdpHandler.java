@@ -9,7 +9,7 @@ import android.util.Log;
 import org.json.JSONObject;
 
 import java.net.DatagramPacket;
-import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 
@@ -131,13 +131,16 @@ public class UdpHandler extends BaseHandlerThread implements UdpCallback {
         postWork(() -> {
             if (mUdp == null) return;
             try {
-                mUdp.send(new DatagramPacket(data, data.length, InetAddress.getByName(ip), port));
+//                mUdp.send(new DatagramPacket(data, data.length, InetAddress.getByName(ip), port));
+                mUdp.send(ip, port, data);
             } catch (Exception e) {
                 Log.w(TAG, "send:" + e);
             }
-            try {
-                Thread.sleep(sleep);
-            } catch (Exception ignore) {
+            if(sleep > 0) {
+                try {
+                    Thread.sleep(sleep);
+                } catch (Exception ignore) {
+                }
             }
         });
     }
@@ -184,10 +187,6 @@ public class UdpHandler extends BaseHandlerThread implements UdpCallback {
 
     public void safeStop() {
         stopProxy();
-        postWork(this::delayQuit);
-    }
-
-    private void delayQuit() {
         mUdp.stop();
         mUdp.setCallback(null);
         mUdp = null;
@@ -291,7 +290,15 @@ public class UdpHandler extends BaseHandlerThread implements UdpCallback {
             }
         }
 
-
+        @Override
+        protected void onReceiveData(InetSocketAddress remote, byte[] data) throws Exception {
+            if (callback == null) return;
+            try {
+                callback.onReceiveUdpData(remote.getAddress().getHostAddress(), remote.getPort(), new String(data));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
     }
 
 }

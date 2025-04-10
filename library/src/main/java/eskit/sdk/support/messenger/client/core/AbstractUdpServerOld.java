@@ -1,32 +1,30 @@
 package eskit.sdk.support.messenger.client.core;
 
-import android.os.Build;
 import android.util.Log;
+
+import org.json.JSONObject;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
+import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
-import java.nio.channels.DatagramChannel;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
 
 import eskit.sdk.support.messenger.client.utils.NetUtils;
 
-public abstract class AbstractUdpServer implements Runnable {
+public abstract class AbstractUdpServerOld implements Runnable {
 
     private static final String TAG = "[-EsMessenger-]";
 
-//    private static final String[] NET_FILTER = new String[]{"rmnet", "vmnet", "vnic", "vboxnet", "virtual", "ppp"};
+    private static final String[] NET_FILTER = new String[]{"rmnet", "vmnet", "vnic", "vboxnet", "virtual", "ppp"};
 
-    private DatagramChannel mChannel;
+    private DatagramSocket mSocket;
     private boolean mRunning;
-    private ByteBuffer mBuffer;
+    private byte[] mBuffer;
     private int mPortSearchStart;
     private String mIp;
     private String mIpPrefix;
 
-    public AbstractUdpServer() {
+    public AbstractUdpServerOld() {
         try {
             mIp = NetUtils.getIp();
             if (mIp != null && mIp.contains(".")) {
@@ -44,21 +42,21 @@ public abstract class AbstractUdpServer implements Runnable {
 
     public void stop() {
         if (isRunning()) {
-            if (mChannel != null) {
+            if (mSocket != null) {
                 try {
-                    mChannel.close();
+                    mSocket.close();
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
         }
-        mChannel = null;
+        mSocket = null;
         mRunning = false;
     }
 
-    public void send(String ip, int port, byte[] data) throws IOException {
-        if (mChannel == null) return;
-        mChannel.send(ByteBuffer.wrap(data), new InetSocketAddress(ip, port));
+    public void send(DatagramPacket packet) throws IOException {
+        if (mSocket == null) return;
+        mSocket.send(packet);
     }
 
     public String getLocalIp() {
@@ -70,7 +68,7 @@ public abstract class AbstractUdpServer implements Runnable {
     }
 
     public int getPort() {
-        return mChannel == null ? -1 : mChannel.socket().getLocalPort();
+        return mSocket == null ? -1 : mSocket.getLocalPort();
     }
 
     public int getSearchPort() {
@@ -82,7 +80,7 @@ public abstract class AbstractUdpServer implements Runnable {
     }
 
     protected void onCreateUdpServer(UdpServerConfig config) {
-        mBuffer = ByteBuffer.allocate(config.getBufferSize());
+        mBuffer = new byte[config.getBufferSize()];
         mPortSearchStart = config.getPortSearchStart();
     }
 
@@ -93,35 +91,15 @@ public abstract class AbstractUdpServer implements Runnable {
     @Override
     public void run() {
         try {
-            mChannel = DatagramChannel.open();
-//            mChannel.socket().setReuseAddress(true);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                mChannel.bind(null);
-            } else {
-                mChannel.socket().bind(null);
-            }
-            mChannel.configureBlocking(false);
+            mSocket = new DatagramSocket();
+            mSocket.setReuseAddress(true);
             mRunning = true;
             Log.d(TAG, "start listen on port " + getPort());
-
-            // 创建Selector 阻塞接收 降低CPU占用
-            Selector selector = Selector.open();
-            mChannel.register(selector, SelectionKey.OP_READ);
-
             while (isRunning()) {
-                Log.d(TAG, "blocking... ");
-                int count = selector.select();
-                if (count == 0) continue;
-                while (true) {
-                    mBuffer.clear();
-                    InetSocketAddress remote = (InetSocketAddress) mChannel.receive(mBuffer);
-                    if (remote == null) break;
-                    mBuffer.flip();
-                    byte[] data = new byte[mBuffer.remaining()];
-                    mBuffer.get(data);
-                    onReceiveData(remote, data);
-                }
-                selector.selectedKeys().clear();
+                DatagramPacket packet = new DatagramPacket(mBuffer, mBuffer.length);
+                mSocket.receive(packet);
+                if (packet.getLength() <= 0) continue;
+                onReceiveData(packet);
             }
         } catch (Exception e) {
             Log.w(TAG, "exit: " + e);
@@ -132,4 +110,11 @@ public abstract class AbstractUdpServer implements Runnable {
         return new String(packet.getData(), 0, packet.getLength());
     }
 
+    protected JSONObject toJson(String data) {
+        try {
+            return new JSONObject(data);
+        } catch (Exception ignored) {
+        }
+        return null;
+    }
 }
