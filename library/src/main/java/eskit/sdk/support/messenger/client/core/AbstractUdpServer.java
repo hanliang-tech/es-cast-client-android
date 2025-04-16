@@ -35,7 +35,6 @@ public abstract class AbstractUdpServer implements Runnable {
             if (mIp != null && mIp.contains(".")) {
                 mIpPrefix = mIp.substring(0, mIp.lastIndexOf(".") + 1);
             }
-            mIpPrefix = "192.168.40.";
         } catch (Exception e) {
             e.printStackTrace();
         }
