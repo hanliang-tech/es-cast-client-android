@@ -5,18 +5,20 @@ import android.os.Handler;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import eskit.sdk.support.messenger.client.EsMessenger;
 import eskit.sdk.support.messenger.client.IEsMessenger;
@@ -30,8 +32,8 @@ public class MainActivity extends AppCompatActivity implements IEsMessenger.Mess
 
     private static final String START_APP_PKG = "es.hello.world";
 
-    private ArrayAdapter<String> mDeviceAdapter;
-    private final Map<String, EsDevice> mDevices = new LinkedHashMap<>();
+    private ArrayAdapter<EsDevice> mDeviceAdapter;
+    private final List<EsDevice> mDevices = new ArrayList<>();
     private EsDevice mCurrentSelectDevice;
 
     private final Handler mHandler = new Handler();
@@ -41,7 +43,22 @@ public class MainActivity extends AppCompatActivity implements IEsMessenger.Mess
         super.onCreate(savedInstanceState);
         super.setContentView(R.layout.activity_main);
 
-        mDeviceAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item);
+        mDeviceAdapter = new ArrayAdapter<EsDevice>(this, android.R.layout.simple_spinner_item){
+            @NonNull
+            @Override
+            public View getView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
+                TextView view = (TextView) super.getView(position, convertView, parent);
+                view.setText(mDevices.get(position).getDeviceName());
+                return view;
+            }
+
+            @Override
+            public View getDropDownView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
+                TextView view = (TextView) super.getDropDownView(position, convertView, parent);
+                view.setText((position + 1) + " " + mDevices.get(position).getDeviceName());
+                return view;
+            }
+        };
         mDeviceAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         Spinner deviceSpinner = findViewById(R.id.deviceList);
         deviceSpinner.setAdapter(mDeviceAdapter);
@@ -85,13 +102,13 @@ public class MainActivity extends AppCompatActivity implements IEsMessenger.Mess
     @Override
     public void onFindDevice(EsDevice device) {
         Log.i(TAG, "onFindDevice " + device);
-        mDevices.put( mDevices.size() + " " + device.getDeviceName(), device);
-        Set<String> keySet = new HashSet<>(mDevices.keySet());
+        mDevices.add(device);
+        Collections.sort(mDevices, (o1, o2) -> (int) (o1.getFindTime() - o2.getFindTime()));
 
         mHandler.post(() -> {
             if (mDeviceAdapter != null) {
                 mDeviceAdapter.clear();
-                mDeviceAdapter.addAll(keySet);
+                mDeviceAdapter.addAll(mDevices);
                 mDeviceAdapter.notifyDataSetChanged();
             }
         });
@@ -112,14 +129,7 @@ public class MainActivity extends AppCompatActivity implements IEsMessenger.Mess
     @Override
     public void onItemSelected(AdapterView<?> adapterView, View view, int position, long id) {
         if (mDevices.size() == 0) return;
-        Set<String> names = mDevices.keySet();
-        int index = 0;
-        for (String name : names) {
-            if (index++ == position) {
-                mCurrentSelectDevice = mDevices.get(name);
-                break;
-            }
-        }
+        mCurrentSelectDevice = mDevices.get(position);
         Log.i("AAA", "" + mCurrentSelectDevice);
         findViewById(R.id.visible_group).setVisibility(View.VISIBLE);
     }
@@ -138,6 +148,9 @@ public class MainActivity extends AppCompatActivity implements IEsMessenger.Mess
      **/
     public void startSearch(View view) {
         mDevices.clear();
+        if (mDeviceAdapter != null) {
+            mDeviceAdapter.clear();
+        }
         EsMessenger.get().search(this);
     }
 

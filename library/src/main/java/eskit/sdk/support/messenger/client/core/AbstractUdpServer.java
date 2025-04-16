@@ -10,6 +10,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
+import java.util.concurrent.CountDownLatch;
 
 import eskit.sdk.support.messenger.client.utils.NetUtils;
 
@@ -26,12 +27,15 @@ public abstract class AbstractUdpServer implements Runnable {
     private String mIp;
     private String mIpPrefix;
 
+    private CountDownLatch mServerStartLatch = new CountDownLatch(1);
+
     public AbstractUdpServer() {
         try {
             mIp = NetUtils.getIp();
             if (mIp != null && mIp.contains(".")) {
                 mIpPrefix = mIp.substring(0, mIp.lastIndexOf(".") + 1);
             }
+            mIpPrefix = "192.168.40.";
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -101,12 +105,19 @@ public abstract class AbstractUdpServer implements Runnable {
                 mChannel.socket().bind(null);
             }
             mChannel.configureBlocking(false);
+
+//            mChannel = DatagramChannel.open();
+//            mChannel.socket().bind(null);
+//            mChannel.configureBlocking(false);
+
             mRunning = true;
             Log.d(TAG, "start listen on port " + getPort());
 
             // 创建Selector 阻塞接收 降低CPU占用
             Selector selector = Selector.open();
             mChannel.register(selector, SelectionKey.OP_READ);
+
+            mServerStartLatch.countDown();
 
             while (isRunning()) {
                 Log.d(TAG, "blocking... ");
@@ -132,4 +143,7 @@ public abstract class AbstractUdpServer implements Runnable {
         return new String(packet.getData(), 0, packet.getLength());
     }
 
+    public CountDownLatch getLock() {
+        return mServerStartLatch;
+    }
 }

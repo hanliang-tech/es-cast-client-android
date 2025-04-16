@@ -3,6 +3,7 @@ package eskit.sdk.support.messenger.client.core;
 import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.os.Build;
+import android.os.Looper;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -46,22 +47,30 @@ public class UdpHandler extends BaseHandlerThread implements UdpCallback {
     }
 
     public void search(Context context) {
-        try {
-            startProxy(null);
-            JSONObject jo = new JSONObject();
-            jo.put("type", CMD_SEARCH);
-            jo.put("device", getDeviceInfo(context));
-            byte[] bytes = jo.toString().getBytes("UTF-8");
-            int[] ports = new int[]{5000, 5001};
-            for (int port : ports) {
-                for (int i = 2; i < 254; i++) {
-                    sendData(bytes, mUdp.getLocalIpPrefix() + i, port);
-                }
+        postWork(() -> {
+            try {
+                mUdp.getLock().await();
+            } catch (Exception ignore) {
             }
+            try {
+                startProxy(null);
+                JSONObject jo = new JSONObject();
+                jo.put("type", CMD_SEARCH);
+                jo.put("device", getDeviceInfo(context));
+                byte[] bytes = jo.toString().getBytes("UTF-8");
+                int[] ports = new int[]{5000, 5001};
+                Log.d(TAG, "search start");
+                for (int port : ports) {
+                    for (int i = 2; i < 254; i++) {
+                        sendData(bytes, mUdp.getLocalIpPrefix() + i, port);
+                    }
+                }
+                Log.d(TAG, "search end");
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
 
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
     }
 
     public void ping(Context context, EsDevice device) {
@@ -128,21 +137,23 @@ public class UdpHandler extends BaseHandlerThread implements UdpCallback {
     }
 
     private void sendData(byte[] data, String ip, int port, int sleep) {
-        postWork(() -> {
-            if (mUdp == null) return;
-            try {
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            postWork(() -> sendData(data, ip, port, sleep));
+            return;
+        }
+        if (mUdp == null) return;
+        try {
 //                mUdp.send(new DatagramPacket(data, data.length, InetAddress.getByName(ip), port));
-                mUdp.send(ip, port, data);
-            } catch (Exception e) {
-                Log.w(TAG, "send:" + e);
+            mUdp.send(ip, port, data);
+        } catch (Exception e) {
+            Log.w(TAG, "send:" + e);
+        }
+        if(sleep > 0) {
+            try {
+                Thread.sleep(sleep);
+            } catch (Exception ignore) {
             }
-            if(sleep > 0) {
-                try {
-                    Thread.sleep(sleep);
-                } catch (Exception ignore) {
-                }
-            }
-        });
+        }
     }
 
     private void startProxy(String targetIp) {
@@ -177,8 +188,8 @@ public class UdpHandler extends BaseHandlerThread implements UdpCallback {
     }
 
     private void stopProxy() {
-        Log.i(TAG, "stop proxy");
         if (!TextUtils.isEmpty(mCurrentServerIp)) {
+            Log.i(TAG, "stop proxy");
             byte[] flag = BuildConfig.UDP_PROXY_HEAD2;
             sendData(flag, mCurrentServerIp, BuildConfig.UDP_PROXY_PORT);
             mCurrentServerIp = null;
