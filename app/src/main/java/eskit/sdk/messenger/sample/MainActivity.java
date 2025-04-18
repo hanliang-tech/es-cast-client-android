@@ -1,92 +1,71 @@
 package eskit.sdk.messenger.sample;
 
+import android.annotation.SuppressLint;
+import android.app.Application;
 import android.os.Bundle;
-import android.os.Handler;
-import android.util.Log;
-import android.view.KeyEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Spinner;
-import android.widget.Toast;
+import android.widget.TextView;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.List;
 
-import eskit.sdk.support.messenger.client.EsMessenger;
-import eskit.sdk.support.messenger.client.IEsMessenger;
 import eskit.sdk.support.messenger.client.bean.EsDevice;
-import eskit.sdk.support.messenger.client.bean.EsEvent;
-import eskit.sdk.support.messenger.client.core.EsCommand;
 
-public class MainActivity extends AppCompatActivity implements IEsMessenger.MessengerCallback, AdapterView.OnItemSelectedListener {
+public class MainActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener {
 
-    private static final String START_APP_PKG = "es.hello.world";
+    private MainViewModel mViewModel;
 
-    private ArrayAdapter<String> mDeviceAdapter;
-    private final Map<String, EsDevice> mDevices = new LinkedHashMap<>();
-    private EsDevice mCurrentSelectDevice;
-
-    private final Handler mHandler = new Handler();
+    private ArrayAdapter<EsDevice> mDeviceAdapter;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         super.setContentView(R.layout.activity_main);
+        initView();
+    }
 
-        mDeviceAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item);
+    private void initView() {
+        mDeviceAdapter = new ArrayAdapter<EsDevice>(this, android.R.layout.simple_spinner_item) {
+            @NonNull
+            @Override
+            public View getView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
+
+                TextView view = (TextView) super.getView(position, convertView, parent);
+                view.setText(getItem(position).getDeviceName());
+                return view;
+            }
+
+            @Override
+            public View getDropDownView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
+                TextView view = (TextView) super.getDropDownView(position, convertView, parent);
+                view.setText((position + 1) + " " + getItem(position).getDeviceName());
+                return view;
+            }
+        };
         mDeviceAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         Spinner deviceSpinner = findViewById(R.id.deviceList);
         deviceSpinner.setAdapter(mDeviceAdapter);
         deviceSpinner.setOnItemSelectedListener(this);
 
-        // --------------------------------------------------- //
-
-        // 设置SDK回调
-        EsMessenger.get().setMessengerCallback(this);
-
-        EsMessenger.get().setOAID("123");
-        EsMessenger.get().setAAID("456");
+        mViewModel = new MainViewModel((Application) getApplicationContext());
+        observeData();
     }
 
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
+    private void observeData() {
 
-        // 停止并释放资源
-        EsMessenger.get().stop();
-
-        mDevices.clear();
-        if (mDeviceAdapter != null) {
-            mDeviceAdapter.clear();
-            mDeviceAdapter = null;
-        }
-        mCurrentSelectDevice = null;
-
-        mHandler.removeCallbacksAndMessages(null);
-    }
-
-    //region SDK回调
-
-    @Override
-    public void onPingResponse(String deviceIp, int devicePort) {
-        mHandler.post(() -> {
-            Toast.makeText(this, "设备" + deviceIp +":" + devicePort + "在线", Toast.LENGTH_SHORT).show();
-        });
-    }
-
-    @Override
-    public void onFindDevice(EsDevice device) {
-        mDevices.put(device.getDeviceName(), device);
-
-        mHandler.post(() -> {
+        mViewModel.deviceListData.observe(this, deviceList -> {
             if (mDeviceAdapter != null) {
                 mDeviceAdapter.clear();
-                mDeviceAdapter.addAll(mDevices.keySet());
+                if (deviceList != null) {
+                    mDeviceAdapter.addAll(deviceList);
+                }
                 mDeviceAdapter.notifyDataSetChanged();
             }
         });
@@ -94,99 +73,90 @@ public class MainActivity extends AppCompatActivity implements IEsMessenger.Mess
     }
 
     @Override
-    public void onReceiveEvent(EsEvent event) {
-        mHandler.post(() -> {
-            Toast.makeText(this, event.getData(), Toast.LENGTH_SHORT).show();
-        });
+    protected void onDestroy() {
+        super.onDestroy();
+        mViewModel.onDestroy();
+        if (mDeviceAdapter != null) {
+            mDeviceAdapter.clear();
+            mDeviceAdapter = null;
+        }
     }
-
-    //endregion
 
     //region 设备选择
 
     @Override
     public void onItemSelected(AdapterView<?> adapterView, View view, int position, long id) {
-        if (mDevices.size() == 0) return;
-        Set<String> names = mDevices.keySet();
-        int index = 0;
-        for (String name : names) {
-            if (index++ == position) {
-                mCurrentSelectDevice = mDevices.get(name);
-                break;
-            }
-        }
-        Log.i("AAA", "" + mCurrentSelectDevice);
-        findViewById(R.id.visible_group).setVisibility(View.VISIBLE);
+        List<EsDevice> deviceList = mViewModel.deviceListData.getValue();
+        if (deviceList == null || deviceList.size() == 0) return;
+        EsDevice device = deviceList.get(position);
+        mViewModel.setCurrentDevice(device);
     }
 
     @Override
     public void onNothingSelected(AdapterView<?> adapterView) {
-        findViewById(R.id.visible_group).setVisibility(View.INVISIBLE);
+        mViewModel.setCurrentDevice(null);
     }
 
     //endregion
 
     //region 按钮事件
 
-    /**
-     * 搜索
-     **/
-    public void startSearch(View view) {
-        mDevices.clear();
-        EsMessenger.get().search(this);
-    }
 
-    /**
-     * 停止
-     **/
-    public void stopSearch(View view) {
-        EsMessenger.get().stop();
+    @SuppressLint("NonConstantResourceId")
+    public void onButtonClick(View view) {
+        int id = view.getId();
 
-        if (mDeviceAdapter != null) {
-            mDeviceAdapter.clear();
-            mDeviceAdapter.notifyDataSetChanged();
+        switch (id) {
+            // 搜索
+            case R.id.btn_start_search:
+                mViewModel.stopSearch();
+                mViewModel.startSearch();
+                break;
+            // 停止搜索
+            case R.id.btn_stop_search:
+                mViewModel.stopSearch();
+                break;
+            // 设备是否在线
+            case R.id.btn_ping_device:
+                mViewModel.pingDevice();
+                break;
+            // 音量+
+            case R.id.btn_set_volume_up:
+                mViewModel.setVolumeUp();
+                break;
+            // 音量-
+            case R.id.btn_set_volume_down:
+                mViewModel.setVolumeDown();
+                break;
+            // 启动首页
+            case R.id.btn_start_home_page:
+                mViewModel.startHomePage();
+                break;
+            // 启动首页并传参
+            case R.id.btn_start_home_page_with_params:
+                mViewModel.startHomePageWithParams();
+                break;
+            // 关闭应用
+            case R.id.btn_close_app:
+                mViewModel.closeEsApp();
+                break;
+            // 启动播放页
+            case R.id.btn_start_player_page:
+                mViewModel.startPlayerPage();
+                break;
+            // 启动播放页并传参
+            case R.id.btn_start_player_page_with_params:
+                mViewModel.startPlayerPageWithParams();
+                break;
+            // 播放
+            case R.id.btn_player_play:
+                mViewModel.play();
+                break;
+            // 暂停
+            case R.id.btn_player_pause:
+                mViewModel.pause();
+                break;
         }
-    }
-
-    /**
-     * 检测设备是否在线
-     * @param view
-     */
-    public void pingDevice(View view) {
-        if (mCurrentSelectDevice == null) return;
-        EsMessenger.get().ping(this, mCurrentSelectDevice);
-    }
-
-    /**
-     * 启动快应用
-     **/
-    public void startEsApp(View view) {
-        if (mCurrentSelectDevice == null) return;
-        EsMessenger.get().sendCommand(this, mCurrentSelectDevice, EsCommand.makeEsAppCommand(START_APP_PKG).setDebug(true));
-    }
-
-    /**
-     * 关闭快应用
-     **/
-    public void closeEsApp(View view) {
-        if (mCurrentSelectDevice == null) return;
-        EsMessenger.get().sendCommand(this, mCurrentSelectDevice, EsCommand.makeCmdCloseCommand(START_APP_PKG));
-    }
-
-    /**
-     * 音量+
-     **/
-    public void setVolumeUp(View view) {
-        if (mCurrentSelectDevice == null) return;
-        EsMessenger.get().sendCommand(this, mCurrentSelectDevice, EsCommand.makeCmdKeyEventCommand(KeyEvent.KEYCODE_VOLUME_UP));
-    }
-
-    /**
-     * 音量-
-     **/
-    public void setVolumeDown(View view) {
-        if (mCurrentSelectDevice == null) return;
-        EsMessenger.get().sendCommand(this, mCurrentSelectDevice, EsCommand.makeCmdKeyEventCommand(KeyEvent.KEYCODE_VOLUME_DOWN));
     }
 
     //endregion
