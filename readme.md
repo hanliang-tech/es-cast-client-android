@@ -5,7 +5,9 @@
 
 [source-android](https://github.com/hanliang-tech/es-cast-client-android)：sdk android源码  
 [source-ios](https://github.com/hanliang-tech/es-cast-client-ios)：sdk ios源码  
-[source-vue](https://github.com/hanliang-tech/es-cast-vue-demo): 超级投屏demo vue源码
+[source-vue](https://github.com/hanliang-tech/es-cast-vue-demo): 超级投屏demo vue源码  
+
+[下载Demo体验](https://github.com/hanliang-tech/es-cast-client-android/releases)  
 
 <br>
 
