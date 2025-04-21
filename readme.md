@@ -169,7 +169,7 @@ EsMessenger.get().sendCommand(this, selectDevice, cmd)
 |-|-|-|-|-|-|-|-|-|-|-
 |说明 |主界面| 返回| 上| 下 |左| 右| 确定| 音量+ |音量-| 菜单
 
-[@更多键值](http://xrefandroid.com/android-15.0.0_r1/xref/frameworks/base/core/java/android/view/KeyEvent.java) 请参考`KEYCODE_xxxx`
+[@更多键值](KeyEvent.java) 请参考`KEYCODE_xxxx`
 
 ### 8 发送自定义事件
 ``` java
