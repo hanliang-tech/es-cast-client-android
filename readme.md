@@ -44,7 +44,7 @@ EsMessenger提供了全部的API接口，注册回调、搜索、发送命令等
 
 | 方法 | 说明 |
 |-|-|
-|setMessengerCallback(MessengerCallback)| 注册SDK回调 [@回调说明](#j_callback)
+|setMessengerCallback(MessengerCallback)| 注册SDK回调
 |search(Context)| 搜索设备 [@搜索设备](#j_search)
 |stop(Context)| 停止搜索
 |ping(Context,EsDevice)| 检测设备是否在线
@@ -107,7 +107,7 @@ public void onReceiveEvent(EsEvent event) {
 |makeEsAppCommand(String)| 创建启动快应用的命令，传入快应用包名[@启动快应用](#j_es_app)
 |makeNativeAppCommand(String)| 创建启动原生安卓应用的命令，传入原生应用包名
 |makeCmdCloseCommand(String...)| 创建关闭快应用的命令，可以传多个包名。如需要关闭所有快应用，可传`all`
-|makeCmdKeyEventCommand(int)|创建遥控器按键命令，仅当应用在前台时有效。[@常用键值](#j_keycode)
+|makeCmdKeyEventCommand(int)|创建遥控器按键命令，仅当应用在前台时有效。[@遥控器事件](#j_remote_control)
 |makeCustomCommand|创建跟大屏端自定义的私有命令
 |setEventData|设置快应用启动的时候接收的参数
 |put|可以设置启动快应用的参数，例如复用界面、隐藏启动页面等
@@ -115,7 +115,7 @@ public void onReceiveEvent(EsEvent event) {
 |splashNone| 不展示loading界面
 |setDebug| 是否打印发送的命令内容，调试的时候可以打开
 
-#### 6.1 启动快应用
+#### <span id="j_es_app">6.1 启动快应用</span>
 ``` kotlin
 // 启动包名为es.cast.demo的快应用
 
@@ -157,13 +157,13 @@ val cmd = EsCommand.makeCmdCloseCommand("all")
 EsMessenger.get().sendCommand(context, device, cmd)
 ```
 
-### 7 发送遥控器事件
+### <span id="j_remote_control">7 发送遥控器事件</span>
 由于权限问题，只能当应用在前台的时候才能生效
 ``` kotlin
 val cmd = EsCommand.makeCmdKeyEventCommand(KeyEvent.KEYCODE_VOLUME_UP)// 音量上键
 EsMessenger.get().sendCommand(this, selectDevice, cmd)
 ```
-**<span id="j_keycode">常用键值说明:</span>**
+**常用键值说明:**
 
 |键值|3| 4 |19 |20| 21 |22| 23 |24 |25 |82
 |-|-|-|-|-|-|-|-|-|-|-
