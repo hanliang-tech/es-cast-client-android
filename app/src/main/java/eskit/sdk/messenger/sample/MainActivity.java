@@ -156,6 +156,14 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             case R.id.btn_player_pause:
                 mViewModel.pause();
                 break;
+            // 快进
+            case R.id.btn_player_forward:
+                mViewModel.forward();
+                break;
+            // 快退
+            case R.id.btn_player_backward:
+                mViewModel.backward();
+                break;
         }
     }
 

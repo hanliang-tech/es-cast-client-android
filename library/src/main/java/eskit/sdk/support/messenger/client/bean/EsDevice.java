@@ -18,7 +18,7 @@ public class EsDevice {
     /** 协议版本 **/
     private int version;
 
-    public EsDevice makeDevice(String ip, int port) {
+    public static EsDevice makeDevice(String ip, int port) {
         EsDevice device = new EsDevice();
         device.setDeviceIp(ip);
         device.setDevicePort(port);
