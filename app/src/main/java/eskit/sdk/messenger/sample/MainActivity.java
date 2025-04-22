@@ -130,7 +130,7 @@ public class MainActivity extends AppCompatActivity implements IEsMessenger.Mess
     public void onItemSelected(AdapterView<?> adapterView, View view, int position, long id) {
         if (mDevices.size() == 0) return;
         mCurrentSelectDevice = mDevices.get(position);
-        Log.i("AAA", "" + mCurrentSelectDevice);
+        Log.i(TAG, "onItemSelected " + mCurrentSelectDevice);
         findViewById(R.id.visible_group).setVisibility(View.VISIBLE);
     }
 

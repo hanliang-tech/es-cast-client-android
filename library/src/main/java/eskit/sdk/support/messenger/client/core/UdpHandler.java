@@ -179,7 +179,7 @@ public class UdpHandler extends BaseHandlerThread implements UdpCallback {
         byte[] data = buffer.array();
 
         if (!TextUtils.isEmpty(targetIp)) {
-            sendData(data, targetIp, BuildConfig.UDP_PROXY_PORT, 500);
+            sendData(data, targetIp, BuildConfig.UDP_PROXY_PORT);
         } else {
             for (int i = 2; i < 254; i++) {
                 sendData(data, mUdp.getLocalIpPrefix() + i, BuildConfig.UDP_PROXY_PORT);

@@ -27,7 +27,7 @@ public abstract class AbstractUdpServer implements Runnable {
     private String mIp;
     private String mIpPrefix;
 
-    private CountDownLatch mServerStartLatch = new CountDownLatch(1);
+    private final CountDownLatch mServerStartLatch = new CountDownLatch(1);
 
     public AbstractUdpServer() {
         try {
@@ -59,9 +59,14 @@ public abstract class AbstractUdpServer implements Runnable {
         mRunning = false;
     }
 
-    public void send(String ip, int port, byte[] data) throws IOException {
+    public void send(String ip, int port, byte[] data) throws IOException, InterruptedException {
         if (mChannel == null) return;
-        mChannel.send(ByteBuffer.wrap(data), new InetSocketAddress(ip, port));
+        ByteBuffer buffer = ByteBuffer.wrap(data);
+        InetSocketAddress address = new InetSocketAddress(ip, port);
+        while (mChannel.send(buffer, address) == 0){
+            Log.d(TAG, "waiting buffer...");
+            Thread.sleep(10);
+        }
     }
 
     public String getLocalIp() {
@@ -105,9 +110,15 @@ public abstract class AbstractUdpServer implements Runnable {
             }
             mChannel.configureBlocking(false);
 
-//            mChannel = DatagramChannel.open();
-//            mChannel.socket().bind(null);
-//            mChannel.configureBlocking(false);
+            int defaultSendBufferSize = mChannel.socket().getSendBufferSize();
+            int defaultReceiveBufferSize = mChannel.socket().getReceiveBufferSize();
+            // 设置发送缓冲区1024K
+            int bufferSize = 1048576;
+            mChannel.socket().setSendBufferSize(bufferSize);
+            mChannel.socket().setReceiveBufferSize(bufferSize);
+
+            Log.d(TAG, "send " + defaultSendBufferSize + " -> " + mChannel.socket().getSendBufferSize());
+            Log.d(TAG, "receive " + defaultReceiveBufferSize + " -> " + mChannel.socket().getReceiveBufferSize());
 
             mRunning = true;
             Log.d(TAG, "start listen on port " + getPort());
@@ -119,7 +130,7 @@ public abstract class AbstractUdpServer implements Runnable {
             mServerStartLatch.countDown();
 
             while (isRunning()) {
-                Log.d(TAG, "blocking... ");
+                Log.d(TAG, "blocking...");
                 int count = selector.select();
                 if (count == 0) continue;
                 while (true) {
