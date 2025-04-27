@@ -95,7 +95,7 @@ SDK将事件封装为EsCommand的类型，开发者只需要调用make方法生�
 ``` java
 // 示例
 // 初始化一个启动快应用的命令
-EsCommand cmd = new EsCommand(ACTION_START_ES_APP).setPkgName(pkg);
+EsCommand cmd = EsCommand.makeEsAppCommand(pkg);
 EsMessenger.get().sendCommand(context, device, cmd);
 
 // MessengerCallback回调
