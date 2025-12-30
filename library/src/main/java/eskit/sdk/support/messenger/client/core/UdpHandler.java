@@ -38,12 +38,12 @@ public class UdpHandler extends BaseHandlerThread implements UdpCallback {
     private String mCurrentServerIp;
     private int mCurrentServerPort;
 
-    public UdpHandler() {
+    public UdpHandler(Context context) {
         super("udp-client");
         mUdp = new UdpImpl();
         start();
         mUdp.setCallback(this);
-        mUdp.start();
+        mUdp.start(context);
     }
 
     public void search(Context context) {
@@ -60,17 +60,31 @@ public class UdpHandler extends BaseHandlerThread implements UdpCallback {
                 byte[] bytes = jo.toString().getBytes("UTF-8");
                 int[] ports = new int[]{5000, 5001};
                 Log.d(TAG, "search start");
-                for (int port : ports) {
-                    for (int i = 2; i < 254; i++) {
-                        sendData(bytes, mUdp.getLocalIpPrefix() + i, port);
+
+                roundSend(() -> {
+                    for (int port : ports) {
+                        for (int i = 2; i < 254; i++) {
+                            sendData(bytes, mUdp.getLocalIpPrefix() + i, port);
+                        }
                     }
-                }
+                });
+
                 Log.d(TAG, "search end");
             } catch (Exception e) {
                 e.printStackTrace();
             }
         });
+    }
 
+    private void roundSend(Runnable runnable) {
+        if (Configs.searchRound == 1) {
+            runnable.run();
+            return;
+        }
+
+        for (int i = 0; i < Configs.searchRound; i++) {
+            runnable.run();
+        }
     }
 
     public void ping(Context context, EsDevice device) {
@@ -148,7 +162,7 @@ public class UdpHandler extends BaseHandlerThread implements UdpCallback {
         } catch (Exception e) {
             Log.w(TAG, "send:" + e);
         }
-        if(sleep > 0) {
+        if (sleep > 0) {
             try {
                 Thread.sleep(sleep);
             } catch (Exception ignore) {

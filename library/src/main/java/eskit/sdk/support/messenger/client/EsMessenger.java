@@ -14,9 +14,9 @@ public class EsMessenger implements IEsMessenger {
     private IEsMessenger.MessengerCallback mDeviceCallback;
     private volatile UdpHandler mUdpHandler;
 
-    private synchronized void initUdpServerIfNeed() {
+    private synchronized void initUdpServerIfNeed(Context context) {
         if (mUdpHandler == null) {
-            mUdpHandler = new UdpHandler();
+            mUdpHandler = new UdpHandler(context);
         }
     }
 
@@ -28,13 +28,13 @@ public class EsMessenger implements IEsMessenger {
     @Override
     public void search(Context context) {
         stop();
-        initUdpServerIfNeed();
+        initUdpServerIfNeed(context);
         mUdpHandler.search(context);
     }
 
     @Override
     public void ping(Context context, EsDevice device) {
-        initUdpServerIfNeed();
+        initUdpServerIfNeed(context);
         mUdpHandler.ping(context, device);
     }
 
@@ -56,8 +56,13 @@ public class EsMessenger implements IEsMessenger {
         Configs.aaid = AAID;
     }
 
+    @Override
+    public void setSearchRound(int round) {
+        Configs.searchRound = Math.max(1, round);
+    }
+
     public void sendCommand(Context context, EsDevice device, EsCommand command) {
-        initUdpServerIfNeed();
+        initUdpServerIfNeed(context);
         mUdpHandler.sendCommandEvent(context, device, command);
     }
 

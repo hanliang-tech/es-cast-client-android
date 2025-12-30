@@ -1,5 +1,7 @@
 package eskit.sdk.support.messenger.client.core;
 
+import android.content.Context;
+import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.util.Log;
 
@@ -10,6 +12,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
+import java.util.Iterator;
 import java.util.concurrent.CountDownLatch;
 
 import eskit.sdk.support.messenger.client.utils.NetUtils;
@@ -26,6 +29,7 @@ public abstract class AbstractUdpServer implements Runnable {
     private int mPortSearchStart;
     private String mIp;
     private String mIpPrefix;
+    private WifiManager.MulticastLock mMulticastLock;
 
     private final CountDownLatch mServerStartLatch = new CountDownLatch(1);
 
@@ -40,8 +44,9 @@ public abstract class AbstractUdpServer implements Runnable {
         }
     }
 
-    public void start() {
+    public void start(Context context) {
         onCreateUdpServer(new UdpServerConfig());
+        acquireMulticastLock(context);
         new Thread(this).start();
     }
 
@@ -57,6 +62,24 @@ public abstract class AbstractUdpServer implements Runnable {
         }
         mChannel = null;
         mRunning = false;
+        releaseMulticastLock();
+    }
+
+    private void acquireMulticastLock(Context context) {
+        WifiManager wifi = (WifiManager) context.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+        if (wifi != null) {
+            mMulticastLock = wifi.createMulticastLock("eskit_udp_discovery");
+            mMulticastLock.setReferenceCounted(true);
+            mMulticastLock.acquire();
+            Log.d(TAG, "MulticastLock acquired");
+        }
+    }
+
+    private void releaseMulticastLock() {
+        if (mMulticastLock != null && mMulticastLock.isHeld()) {
+            mMulticastLock.release();
+            Log.d(TAG, "MulticastLock released");
+        }
     }
 
     public void send(String ip, int port, byte[] data) throws IOException, InterruptedException {
@@ -131,18 +154,38 @@ public abstract class AbstractUdpServer implements Runnable {
 
             while (isRunning()) {
                 Log.d(TAG, "blocking...");
-                int count = selector.select();
+                int count = selector.select(100);
                 if (count == 0) continue;
-                while (true) {
-                    mBuffer.clear();
-                    InetSocketAddress remote = (InetSocketAddress) mChannel.receive(mBuffer);
-                    if (remote == null) break;
-                    mBuffer.flip();
-                    byte[] data = new byte[mBuffer.remaining()];
-                    mBuffer.get(data);
-                    onReceiveData(remote, data);
+//                while (true) {
+//                    mBuffer.clear();
+//                    InetSocketAddress remote = (InetSocketAddress) mChannel.receive(mBuffer);
+//                    if (remote == null) break;
+//                    mBuffer.flip();
+//                    byte[] data = new byte[mBuffer.remaining()];
+//                    mBuffer.get(data);
+//                    onReceiveData(remote, data);
+//                }
+//                selector.selectedKeys().clear();
+
+                Iterator<SelectionKey> iterator = selector.selectedKeys().iterator();
+                while (iterator.hasNext()) {
+                    SelectionKey key = iterator.next();
+                    iterator.remove();
+                    if (key.isReadable()) {
+                        DatagramChannel channel = (DatagramChannel) key.channel();
+                        while (true) {
+                            mBuffer.clear();
+                            InetSocketAddress remote = (InetSocketAddress) channel.receive(mBuffer);
+                            if (remote == null) break;
+                            mBuffer.flip();
+                            byte[] data = new byte[mBuffer.remaining()];
+                            mBuffer.get(data);
+                            onReceiveData(remote, data);
+                        }
+                    }
                 }
-                selector.selectedKeys().clear();
+
+
             }
         } catch (Exception e) {
             Log.w(TAG, "exit: " + e);

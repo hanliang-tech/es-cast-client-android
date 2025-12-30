@@ -13,4 +13,6 @@ public class Configs {
 
     public static String aaid;
 
+    public static int searchRound = 1;
+
 }
