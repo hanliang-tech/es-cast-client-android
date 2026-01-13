@@ -61,6 +61,11 @@ public class EsMessenger implements IEsMessenger {
         Configs.searchRound = Math.max(1, round);
     }
 
+    @Override
+    public void setSearchPorts(int[] ports) {
+        Configs.ports = ports;
+    }
+
     public void sendCommand(Context context, EsDevice device, EsCommand command) {
         initUdpServerIfNeed(context);
         mUdpHandler.sendCommandEvent(context, device, command);

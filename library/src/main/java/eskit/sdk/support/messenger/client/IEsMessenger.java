@@ -55,6 +55,12 @@ public interface IEsMessenger {
     void setSearchRound(int round);
 
     /**
+     * 设置搜索端口
+     * @param ports 搜索端口
+     */
+    void setSearchPorts(int[] ports);
+
+    /**
      * 事件回调
      **/
     interface MessengerCallback {

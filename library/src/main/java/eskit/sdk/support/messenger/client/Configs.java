@@ -15,4 +15,6 @@ public class Configs {
 
     public static int searchRound = 1;
 
+    public static int[] ports = null;
+
 }

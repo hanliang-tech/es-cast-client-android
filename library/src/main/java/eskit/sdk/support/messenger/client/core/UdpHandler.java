@@ -58,7 +58,7 @@ public class UdpHandler extends BaseHandlerThread implements UdpCallback {
                 jo.put("type", CMD_SEARCH);
                 jo.put("device", getDeviceInfo(context));
                 byte[] bytes = jo.toString().getBytes("UTF-8");
-                int[] ports = new int[]{5000, 5001};
+                int[] ports = (Configs.ports != null && Configs.ports.length > 0) ? Configs.ports : new int[]{5000, 5001};
                 Log.d(TAG, "search start");
 
                 roundSend(() -> {
@@ -77,7 +77,7 @@ public class UdpHandler extends BaseHandlerThread implements UdpCallback {
     }
 
     private void roundSend(Runnable runnable) {
-        if (Configs.searchRound == 1) {
+        if (Configs.searchRound <= 1) {
             runnable.run();
             return;
         }
