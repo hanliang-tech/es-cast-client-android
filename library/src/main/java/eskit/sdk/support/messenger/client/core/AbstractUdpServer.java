@@ -153,7 +153,7 @@ public abstract class AbstractUdpServer implements Runnable {
             mServerStartLatch.countDown();
 
             while (isRunning()) {
-                Log.d(TAG, "blocking...");
+//                Log.d(TAG, "blocking...");
                 int count = selector.select(100);
                 if (count == 0) continue;
 //                while (true) {
