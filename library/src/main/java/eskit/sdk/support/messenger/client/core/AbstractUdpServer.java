@@ -131,6 +131,7 @@ public abstract class AbstractUdpServer implements Runnable {
             } else {
                 mChannel.socket().bind(null);
             }
+            mChannel.socket().setBroadcast(true);
             mChannel.configureBlocking(false);
 
             int defaultSendBufferSize = mChannel.socket().getSendBufferSize();

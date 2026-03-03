@@ -13,7 +13,7 @@ public class Configs {
 
     public static String aaid;
 
-    public static int searchRound = 1;
+    public static int searchRound = 3;
 
     public static int[] ports = null;
 

@@ -43,7 +43,7 @@ public class MainActivity extends AppCompatActivity implements IEsMessenger.Mess
         super.onCreate(savedInstanceState);
         super.setContentView(R.layout.activity_main);
 
-        mDeviceAdapter = new ArrayAdapter<EsDevice>(this, android.R.layout.simple_spinner_item){
+        mDeviceAdapter = new ArrayAdapter<EsDevice>(this, android.R.layout.simple_spinner_item) {
             @NonNull
             @Override
             public View getView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
@@ -68,9 +68,10 @@ public class MainActivity extends AppCompatActivity implements IEsMessenger.Mess
 
         // 设置SDK回调
         EsMessenger.get().setMessengerCallback(this);
-
+        EsMessenger.get().setSearchPorts(new int[]{52358});
         EsMessenger.get().setOAID("123");
         EsMessenger.get().setAAID("456");
+//        EsMessenger.get().setSearchRound(3);
     }
 
     @Override
@@ -95,12 +96,13 @@ public class MainActivity extends AppCompatActivity implements IEsMessenger.Mess
     @Override
     public void onPingResponse(String deviceIp, int devicePort) {
         mHandler.post(() -> {
-            Toast.makeText(this, "设备" + deviceIp +":" + devicePort + "在线", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "设备" + deviceIp + ":" + devicePort + "在线", Toast.LENGTH_SHORT).show();
         });
     }
 
     @Override
     public void onFindDevice(EsDevice device) {
+        if (mDevices.contains(device)) return;
         Log.i(TAG, "onFindDevice " + device);
         mDevices.add(device);
         Collections.sort(mDevices, (o1, o2) -> (int) (o1.getFindTime() - o2.getFindTime()));
