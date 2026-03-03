@@ -76,8 +76,10 @@ public class EsDevice {
     @Override
     public boolean equals(Object obj) {
         if (!(obj instanceof EsDevice)) return false;
+        if (this == obj) return true;
         EsDevice other = (EsDevice) obj;
-        return this == obj || (Objects.equals(this.deviceIp, other.deviceIp) && Objects.equals(this.devicePort, other.devicePort));
+        if(!Objects.equals(this.devicePort, other.devicePort)) return false;
+        return Objects.equals(this.deviceIp, other.deviceIp);
     }
 
     @Override
