@@ -200,6 +200,14 @@ public class MainActivity extends AppCompatActivity implements IEsMessenger.Mess
     }
 
     /**
+     * 启动快应用
+     **/
+    public void startNativeApp(View view) {
+        if (mCurrentSelectDevice == null) return;
+        EsMessenger.get().sendCommand(this, mCurrentSelectDevice, EsCommand.makeNativeAppCommand("com.tcl.appmarket2").setDebug(true));
+    }
+
+    /**
      * 音量-
      **/
     public void setVolumeDown(View view) {
