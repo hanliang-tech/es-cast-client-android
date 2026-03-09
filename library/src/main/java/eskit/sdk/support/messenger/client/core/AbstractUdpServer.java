@@ -1,6 +1,8 @@
 package eskit.sdk.support.messenger.client.core;
 
+import android.Manifest;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.util.Log;
@@ -65,7 +67,19 @@ public abstract class AbstractUdpServer implements Runnable {
         releaseMulticastLock();
     }
 
+    private boolean hasMulticastPermission(Context context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            return context.checkSelfPermission(Manifest.permission.CHANGE_WIFI_MULTICAST_STATE) == PackageManager.PERMISSION_GRANTED;
+        } else {
+            return context.getPackageManager().checkPermission(Manifest.permission.CHANGE_WIFI_MULTICAST_STATE, context.getPackageName()) == PackageManager.PERMISSION_GRANTED;
+        }
+    }
+
     private void acquireMulticastLock(Context context) {
+        if (!hasMulticastPermission(context)) {
+            Log.w(TAG, "Permission CHANGE_WIFI_MULTICAST_STATE not granted");
+            return;
+        }
         WifiManager wifi = (WifiManager) context.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
         if (wifi != null) {
             mMulticastLock = wifi.createMulticastLock("eskit_udp_discovery");
