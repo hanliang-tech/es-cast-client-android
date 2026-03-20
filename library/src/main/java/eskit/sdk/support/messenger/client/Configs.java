@@ -17,4 +17,6 @@ public class Configs {
 
     public static int[] ports = null;
 
+    public static boolean localhost;
+
 }

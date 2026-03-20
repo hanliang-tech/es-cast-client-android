@@ -35,6 +35,7 @@ public class UdpHandler extends BaseHandlerThread implements UdpCallback {
     private static final int CMD_CUSTOM = 3;
     private static final int DEFAULT_SEARCH_PORT1 = 5000;
     private static final int DEFAULT_SEARCH_PORT2 = 5001;
+    private static final String LOCALHOST_IP = "127.0.0.1";
     private static final int SEARCH_HOST_START = 1;
     private static final int SEARCH_HOST_END = 254;
     private static final int SEARCH_BROADCAST_SUFFIX = 255;
@@ -66,22 +67,23 @@ public class UdpHandler extends BaseHandlerThread implements UdpCallback {
             } catch (Exception ignore) {
             }
             try {
+                boolean searchLocalhostOnly = Configs.localhost;
+                String ipPrefix = mUdp.getLocalIpPrefix();
+                String localIp = mUdp.getLocalIp();
+                if (!searchLocalhostOnly && TextUtils.isEmpty(ipPrefix)) {
+                    Log.w(TAG, "search skip, local ip prefix empty");
+                    return;
+                }
                 startProxy(null);
                 JSONObject jo = new JSONObject();
                 jo.put("type", CMD_SEARCH);
                 jo.put("device", getDeviceInfo(context));
                 byte[] bytes = jo.toString().getBytes("UTF-8");
                 int[] ports = getSearchPorts();
-                String ipPrefix = mUdp.getLocalIpPrefix();
-                if (TextUtils.isEmpty(ipPrefix)) {
-                    Log.w(TAG, "search skip, local ip prefix empty");
-                    return;
-                }
-                String localIp = mUdp.getLocalIp();
                 Log.d(TAG, "search start");
 
                 roundSend(() -> {
-                    sendDataToSubnet(bytes, ipPrefix, localIp, ports);
+                    sendDataToSubnet(bytes, ipPrefix, localIp, ports, searchLocalhostOnly);
                 });
 
                 Log.d(TAG, "search end");
@@ -122,9 +124,18 @@ public class UdpHandler extends BaseHandlerThread implements UdpCallback {
         return result;
     }
 
-    private void sendDataToSubnet(byte[] data, String ipPrefix, String localIp, int[] ports) {
+    private void sendDataToSubnet(byte[] data, String ipPrefix, String localIp, int[] ports, boolean searchLocalhostOnly) {
         int count = 0;
         for (int port : ports) {
+            if (searchLocalhostOnly) {
+                sendData(data, LOCALHOST_IP, port);
+                count++;
+                if (count % SEARCH_BATCH_SIZE == 0) {
+                    sleepQuietly(SEARCH_BATCH_SLEEP_MS);
+                }
+                continue;
+            }
+
             // 先发一次广播包，兼容只响应广播的设备实现
             sendData(data, ipPrefix + SEARCH_BROADCAST_SUFFIX, port);
             for (int i = SEARCH_HOST_START; i <= SEARCH_HOST_END; i++) {
@@ -232,13 +243,14 @@ public class UdpHandler extends BaseHandlerThread implements UdpCallback {
 
     private void startProxy(String targetIp) {
         Log.i(TAG, "start proxy");
+        boolean proxyLocalhost = Configs.localhost && (TextUtils.isEmpty(targetIp) || TextUtils.equals(targetIp, LOCALHOST_IP));
         byte[] flag = BuildConfig.UDP_PROXY_HEAD1;
         byte[] ip = "192.168.0.255".getBytes(Charset.forName("UTF-8"));
         JSONObject jo = new JSONObject();
         try {
             jo.putOpt("tclVersion", "1.0.0");
             jo.putOpt("deviceName", Build.DEVICE);
-            jo.putOpt("wlanIp", mUdp.getLocalIpPrefix() + 1);
+            jo.putOpt("wlanIp", proxyLocalhost ? LOCALHOST_IP : mUdp.getLocalIpPrefix() + 1);
             jo.putOpt("type", 1);
             jo.putOpt("serviceData", "");
             jo.putOpt("extendServiceData", "");
@@ -254,6 +266,8 @@ public class UdpHandler extends BaseHandlerThread implements UdpCallback {
 
         if (!TextUtils.isEmpty(targetIp)) {
             sendData(data, targetIp, BuildConfig.UDP_PROXY_PORT);
+        } else if (proxyLocalhost) {
+            sendData(data, LOCALHOST_IP, BuildConfig.UDP_PROXY_PORT);
         } else {
             for (int i = 2; i < 254; i++) {
                 sendData(data, mUdp.getLocalIpPrefix() + i, BuildConfig.UDP_PROXY_PORT);

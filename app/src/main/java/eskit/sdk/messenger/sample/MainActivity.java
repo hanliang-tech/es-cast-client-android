@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import eskit.sdk.support.messenger.client.Configs;
 import eskit.sdk.support.messenger.client.EsMessenger;
 import eskit.sdk.support.messenger.client.IEsMessenger;
 import eskit.sdk.support.messenger.client.bean.EsDevice;
@@ -42,6 +43,8 @@ public class MainActivity extends AppCompatActivity implements IEsMessenger.Mess
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         super.setContentView(R.layout.activity_main);
+
+        Configs.localhost = true;
 
         mDeviceAdapter = new ArrayAdapter<EsDevice>(this, android.R.layout.simple_spinner_item) {
             @NonNull
