@@ -3,15 +3,17 @@ package eskit.sdk.support.messenger.client.core;
 import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.os.Build;
+import android.os.Looper;
 import android.text.TextUtils;
 import android.util.Log;
 
 import org.json.JSONObject;
 
 import java.net.DatagramPacket;
-import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.util.HashSet;
 
 import eskit.sdk.support.messenger.client.BuildConfig;
 import eskit.sdk.support.messenger.client.Configs;
@@ -31,36 +33,128 @@ public class UdpHandler extends BaseHandlerThread implements UdpCallback {
     private static final int CMD_SEARCH = 1;
     private static final int CMD_EVENT = 2;
     private static final int CMD_CUSTOM = 3;
+    private static final int DEFAULT_SEARCH_PORT1 = 5000;
+    private static final int DEFAULT_SEARCH_PORT2 = 5001;
+    private static final String LOCALHOST_IP = "127.0.0.1";
+    private static final int SEARCH_HOST_START = 1;
+    private static final int SEARCH_HOST_END = 254;
+    private static final int SEARCH_BROADCAST_SUFFIX = 255;
+    private static final int SEARCH_BATCH_SIZE = 24;
+    private static final int SEARCH_BATCH_SLEEP_MS = 2;
+    private static final int SEARCH_ROUND_SLEEP_MS = 280;
 
     private UdpImpl mUdp;
     private JSONObject mEventBody;
     private String mCurrentServerIp;
     private int mCurrentServerPort;
+    private final Object mSearchCacheLock = new Object();
+    private final HashSet<String> mSearchDeviceCache = new HashSet<>();
 
-    public UdpHandler() {
+    public UdpHandler(Context context) {
         super("udp-client");
         mUdp = new UdpImpl();
         start();
         mUdp.setCallback(this);
-        mUdp.start();
+        mUdp.start(context);
     }
 
     public void search(Context context) {
-        try {
-            startProxy(null);
-            JSONObject jo = new JSONObject();
-            jo.put("type", CMD_SEARCH);
-            jo.put("device", getDeviceInfo(context));
-            byte[] bytes = jo.toString().getBytes("UTF-8");
-            int[] ports = new int[]{5000, 5001};
-            for (int port : ports) {
-                for (int i = 2; i < 254; i++) {
-                    sendData(bytes, mUdp.getLocalIpPrefix() + i, port);
+        postWork(() -> {
+            if (mUdp == null) return;
+            clearSearchCache();
+            try {
+                mUdp.getLock().await();
+            } catch (Exception ignore) {
+            }
+            try {
+                boolean searchLocalhostOnly = Configs.localhost;
+                String ipPrefix = mUdp.getLocalIpPrefix();
+                String localIp = mUdp.getLocalIp();
+                if (!searchLocalhostOnly && TextUtils.isEmpty(ipPrefix)) {
+                    Log.w(TAG, "search skip, local ip prefix empty");
+                    return;
                 }
+                startProxy(null);
+                JSONObject jo = new JSONObject();
+                jo.put("type", CMD_SEARCH);
+                jo.put("device", getDeviceInfo(context));
+                byte[] bytes = jo.toString().getBytes("UTF-8");
+                int[] ports = getSearchPorts();
+                Log.d(TAG, "search start");
+
+                roundSend(() -> {
+                    sendDataToSubnet(bytes, ipPrefix, localIp, ports, searchLocalhostOnly);
+                });
+
+                Log.d(TAG, "search end");
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+    }
+
+    private void roundSend(Runnable runnable) {
+        int round = Math.max(1, Configs.searchRound);
+        for (int i = 0; i < round; i++) {
+            runnable.run();
+            if (i < round - 1) {
+                sleepQuietly(SEARCH_ROUND_SLEEP_MS);
+            }
+        }
+    }
+
+    private int[] getSearchPorts() {
+        int[] sourcePorts = (Configs.ports != null && Configs.ports.length > 0)
+                ? Configs.ports : new int[]{DEFAULT_SEARCH_PORT1, DEFAULT_SEARCH_PORT2};
+        HashSet<Integer> validPorts = new HashSet<>();
+        for (int port : sourcePorts) {
+            if (port > 0 && port <= 65535) {
+                validPorts.add(port);
+            }
+        }
+        if (validPorts.isEmpty()) {
+            validPorts.add(DEFAULT_SEARCH_PORT1);
+            validPorts.add(DEFAULT_SEARCH_PORT2);
+        }
+        int[] result = new int[validPorts.size()];
+        int index = 0;
+        for (Integer port : validPorts) {
+            result[index++] = port;
+        }
+        return result;
+    }
+
+    private void sendDataToSubnet(byte[] data, String ipPrefix, String localIp, int[] ports, boolean searchLocalhostOnly) {
+        int count = 0;
+        for (int port : ports) {
+            if (searchLocalhostOnly) {
+                sendData(data, LOCALHOST_IP, port);
+                count++;
+                if (count % SEARCH_BATCH_SIZE == 0) {
+                    sleepQuietly(SEARCH_BATCH_SLEEP_MS);
+                }
+                continue;
             }
 
-        } catch (Exception e) {
-            e.printStackTrace();
+            // 先发一次广播包，兼容只响应广播的设备实现
+            sendData(data, ipPrefix + SEARCH_BROADCAST_SUFFIX, port);
+            for (int i = SEARCH_HOST_START; i <= SEARCH_HOST_END; i++) {
+                String ip = ipPrefix + i;
+                if (TextUtils.equals(localIp, ip)) continue;
+                sendData(data, ip, port);
+                count++;
+                if (count % SEARCH_BATCH_SIZE == 0) {
+                    sleepQuietly(SEARCH_BATCH_SLEEP_MS);
+                }
+            }
+        }
+    }
+
+    private void sleepQuietly(long sleep) {
+        if (sleep <= 0) return;
+        try {
+            Thread.sleep(sleep);
+        } catch (Exception ignore) {
         }
     }
 
@@ -128,29 +222,35 @@ public class UdpHandler extends BaseHandlerThread implements UdpCallback {
     }
 
     private void sendData(byte[] data, String ip, int port, int sleep) {
-        postWork(() -> {
-            if (mUdp == null) return;
-            try {
-                mUdp.send(new DatagramPacket(data, data.length, InetAddress.getByName(ip), port));
-            } catch (Exception e) {
-                Log.w(TAG, "send:" + e);
-            }
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            postWork(() -> sendData(data, ip, port, sleep));
+            return;
+        }
+        if (mUdp == null) return;
+        try {
+//                mUdp.send(new DatagramPacket(data, data.length, InetAddress.getByName(ip), port));
+            mUdp.send(ip, port, data);
+        } catch (Exception e) {
+            Log.w(TAG, "send:" + e);
+        }
+        if (sleep > 0) {
             try {
                 Thread.sleep(sleep);
             } catch (Exception ignore) {
             }
-        });
+        }
     }
 
     private void startProxy(String targetIp) {
         Log.i(TAG, "start proxy");
+        boolean proxyLocalhost = Configs.localhost && (TextUtils.isEmpty(targetIp) || TextUtils.equals(targetIp, LOCALHOST_IP));
         byte[] flag = BuildConfig.UDP_PROXY_HEAD1;
         byte[] ip = "192.168.0.255".getBytes(Charset.forName("UTF-8"));
         JSONObject jo = new JSONObject();
         try {
             jo.putOpt("tclVersion", "1.0.0");
             jo.putOpt("deviceName", Build.DEVICE);
-            jo.putOpt("wlanIp", mUdp.getLocalIpPrefix() + 1);
+            jo.putOpt("wlanIp", proxyLocalhost ? LOCALHOST_IP : mUdp.getLocalIpPrefix() + 1);
             jo.putOpt("type", 1);
             jo.putOpt("serviceData", "");
             jo.putOpt("extendServiceData", "");
@@ -165,7 +265,9 @@ public class UdpHandler extends BaseHandlerThread implements UdpCallback {
         byte[] data = buffer.array();
 
         if (!TextUtils.isEmpty(targetIp)) {
-            sendData(data, targetIp, BuildConfig.UDP_PROXY_PORT, 500);
+            sendData(data, targetIp, BuildConfig.UDP_PROXY_PORT);
+        } else if (proxyLocalhost) {
+            sendData(data, LOCALHOST_IP, BuildConfig.UDP_PROXY_PORT);
         } else {
             for (int i = 2; i < 254; i++) {
                 sendData(data, mUdp.getLocalIpPrefix() + i, BuildConfig.UDP_PROXY_PORT);
@@ -174,8 +276,8 @@ public class UdpHandler extends BaseHandlerThread implements UdpCallback {
     }
 
     private void stopProxy() {
-        Log.i(TAG, "stop proxy");
         if (!TextUtils.isEmpty(mCurrentServerIp)) {
+            Log.i(TAG, "stop proxy");
             byte[] flag = BuildConfig.UDP_PROXY_HEAD2;
             sendData(flag, mCurrentServerIp, BuildConfig.UDP_PROXY_PORT);
             mCurrentServerIp = null;
@@ -184,14 +286,11 @@ public class UdpHandler extends BaseHandlerThread implements UdpCallback {
 
     public void safeStop() {
         stopProxy();
-        postWork(this::delayQuit);
-    }
-
-    private void delayQuit() {
         mUdp.stop();
         mUdp.setCallback(null);
         mUdp = null;
         mEventBody = null;
+        clearSearchCache();
         quit();
     }
 
@@ -227,12 +326,35 @@ public class UdpHandler extends BaseHandlerThread implements UdpCallback {
                 break;
                 case CMD_SEARCH: {
                     JSONObject data = jo.optJSONObject("data");
+                    if (data == null) {
+                        data = jo.optJSONObject("device");
+                    }
                     EsDevice device = new EsDevice();
                     device.setVersion(jo.optInt("version"));
                     device.setDeviceIp(ip);
                     device.setDevicePort(port);
-                    device.setDeviceName(data.optString("name"));
-                    device.setFrom(data.optString("pkg"));
+                    String deviceName = jo.optString("name");
+                    String from = jo.optString("pkg");
+                    if (data != null) {
+                        if (TextUtils.isEmpty(deviceName)) {
+                            deviceName = data.optString("name");
+                        }
+                        if (TextUtils.isEmpty(deviceName)) {
+                            deviceName = data.optString("deviceName");
+                        }
+                        if (TextUtils.isEmpty(from)) {
+                            from = data.optString("pkg");
+                        }
+                        if (TextUtils.isEmpty(from)) {
+                            from = data.optString("from");
+                        }
+                    }
+                    if (TextUtils.isEmpty(deviceName)) {
+                        deviceName = ip;
+                    }
+                    device.setDeviceName(deviceName);
+                    device.setFrom(from);
+                    if (!tryMarkSearchDevice(ip, port)) return;
                     callback.onFindDevice(device);
                 }
                 break;
@@ -268,6 +390,18 @@ public class UdpHandler extends BaseHandlerThread implements UdpCallback {
         return false;
     }
 
+    private boolean tryMarkSearchDevice(String ip, int port) {
+        synchronized (mSearchCacheLock) {
+            return mSearchDeviceCache.add(ip + ":" + port);
+        }
+    }
+
+    private void clearSearchCache() {
+        synchronized (mSearchCacheLock) {
+            mSearchDeviceCache.clear();
+        }
+    }
+
     private static final class UdpImpl extends AbstractUdpServer {
 
         private UdpCallback callback;
@@ -291,7 +425,15 @@ public class UdpHandler extends BaseHandlerThread implements UdpCallback {
             }
         }
 
-
+        @Override
+        protected void onReceiveData(InetSocketAddress remote, byte[] data) throws Exception {
+            if (callback == null) return;
+            try {
+                callback.onReceiveUdpData(remote.getAddress().getHostAddress(), remote.getPort(), new String(data));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
     }
 
 }

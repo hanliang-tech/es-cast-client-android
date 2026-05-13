@@ -49,6 +49,18 @@ public interface IEsMessenger {
     void setAAID(String AAID);
 
     /**
+     * 设置一次搜索发送几轮指令， 默认3
+     * @param round 搜索轮数
+     */
+    void setSearchRound(int round);
+
+    /**
+     * 设置搜索端口
+     * @param ports 搜索端口
+     */
+    void setSearchPorts(int[] ports);
+
+    /**
      * 事件回调
      **/
     interface MessengerCallback {

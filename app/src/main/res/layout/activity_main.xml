@@ -1,80 +1,83 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:keepScreenOn="true"
-    android:padding="10dp"
-    android:clipToPadding="false">
+    android:orientation="vertical"
+    android:keepScreenOn="true">
+
     <LinearLayout
+        tools:ignore="UsingOnClickInXml"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:orientation="horizontal">
 
-        <!-- 搜索 -->
-        <TextView
-            android:layout_width="match_parent"
+        <Button
+            android:layout_width="120dp"
             android:layout_height="wrap_content"
-            android:textStyle="bold"
-            android:textSize="20sp"
-            android:padding="5dp"
-            android:background="#44000000"
-            android:layout_marginBottom="5dp"
-            android:text="搜索"/>
+            android:onClick="startSearch"
+            android:text="搜索设备" />
 
-        <include layout="@layout/view_search" />
+        <Button
+            android:layout_width="120dp"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="30dp"
+            android:onClick="stopSearch"
+            android:text="停止搜索" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        tools:ignore="UsingOnClickInXml"
+        android:id="@+id/visible_group"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:visibility="invisible"
+        tools:visibility="visible"
+        android:orientation="vertical">
 
         <Spinner
             android:id="@+id/deviceList"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:spinnerMode="dropdown"
-            android:layout_marginTop="5dp"
-            android:layout_marginBottom="5dp"/>
+            android:spinnerMode="dropdown"/>
 
-        <!-- 基础功能 -->
-
-        <TextView
-            android:layout_width="match_parent"
+        <Button
+            android:layout_width="120dp"
             android:layout_height="wrap_content"
-            android:textStyle="bold"
-            android:textSize="20sp"
-            android:layout_marginTop="25dp"
-            android:padding="5dp"
-            android:background="#44000000"
-            android:layout_marginBottom="5dp"
-            android:text="基础功能"/>
+            android:onClick="pingDevice"
+            android:text="ping设备"/>
 
-        <include layout="@layout/view_function1" />
-
-        <!-- 启动关闭应用 -->
-
-        <TextView
-            android:layout_width="match_parent"
+        <Button
+            android:layout_width="120dp"
             android:layout_height="wrap_content"
-            android:textStyle="bold"
-            android:textSize="20sp"
-            android:layout_marginTop="25dp"
-            android:padding="5dp"
-            android:background="#44000000"
-            android:layout_marginBottom="5dp"
-            android:text="启动关闭应用"/>
+            android:onClick="startEsApp"
+            android:text="启动快应用"/>
 
-        <include layout="@layout/view_function2" />
-
-        <!-- 消息互传 -->
-
-        <TextView
-            android:layout_width="match_parent"
+        <Button
+            android:layout_width="120dp"
             android:layout_height="wrap_content"
-            android:textStyle="bold"
-            android:textSize="20sp"
-            android:layout_marginTop="25dp"
-            android:padding="5dp"
-            android:background="#44000000"
-            android:layout_marginBottom="5dp"
-            android:text="消息互传"/>
+            android:onClick="startNativeApp"
+            android:text="启动原生应用"/>
 
-        <include layout="@layout/view_function3" />
+        <Button
+            android:layout_width="120dp"
+            android:layout_height="wrap_content"
+            android:onClick="closeEsApp"
+            android:text="关闭应用" />
+
+        <Button
+            android:layout_width="120dp"
+            android:layout_height="wrap_content"
+            android:onClick="setVolumeUp"
+            android:text="音量+" />
+
+        <Button
+            android:layout_width="120dp"
+            android:layout_height="wrap_content"
+            android:onClick="setVolumeDown"
+            android:text="音量-" />
 
     </LinearLayout>
-</ScrollView>
+
+</LinearLayout>

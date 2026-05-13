@@ -1,5 +1,7 @@
 package eskit.sdk.support.messenger.client.bean;
 
+import java.util.Objects;
+
 /**
  *
  */
@@ -76,6 +78,15 @@ public class EsDevice {
     public EsDevice setVersion(int version) {
         this.version = version;
         return this;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof EsDevice)) return false;
+        if (this == obj) return true;
+        EsDevice other = (EsDevice) obj;
+        if(!Objects.equals(this.devicePort, other.devicePort)) return false;
+        return Objects.equals(this.deviceIp, other.deviceIp);
     }
 
     @Override
