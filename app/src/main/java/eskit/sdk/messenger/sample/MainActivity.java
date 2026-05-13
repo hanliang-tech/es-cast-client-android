@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import eskit.sdk.support.messenger.client.Configs;
 import eskit.sdk.support.messenger.client.EsMessenger;
 import eskit.sdk.support.messenger.client.IEsMessenger;
 import eskit.sdk.support.messenger.client.bean.EsDevice;
@@ -44,8 +43,20 @@ public class MainActivity extends AppCompatActivity implements IEsMessenger.Mess
         super.onCreate(savedInstanceState);
         super.setContentView(R.layout.activity_main);
 
-        Configs.localhost = true;
+        initViews();
 
+        // --------------------------------------------------- //
+
+        // 设置SDK回调
+        EsMessenger.get().setMessengerCallback(this);
+//        EsMessenger.get().setSearchPorts(new int[]{52358});
+//        Configs.localhost = true; // 只搜索本机端口
+        EsMessenger.get().setOAID("123");
+        EsMessenger.get().setAAID("456");
+//        EsMessenger.get().setSearchRound(3);
+    }
+
+    private void initViews() {
         mDeviceAdapter = new ArrayAdapter<EsDevice>(this, android.R.layout.simple_spinner_item) {
             @NonNull
             @Override
@@ -66,15 +77,6 @@ public class MainActivity extends AppCompatActivity implements IEsMessenger.Mess
         Spinner deviceSpinner = findViewById(R.id.deviceList);
         deviceSpinner.setAdapter(mDeviceAdapter);
         deviceSpinner.setOnItemSelectedListener(this);
-
-        // --------------------------------------------------- //
-
-        // 设置SDK回调
-        EsMessenger.get().setMessengerCallback(this);
-        EsMessenger.get().setSearchPorts(new int[]{52358});
-        EsMessenger.get().setOAID("123");
-        EsMessenger.get().setAAID("456");
-//        EsMessenger.get().setSearchRound(3);
     }
 
     @Override
