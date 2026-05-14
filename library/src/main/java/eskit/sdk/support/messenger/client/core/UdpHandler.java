@@ -355,6 +355,7 @@ public class UdpHandler extends BaseHandlerThread implements UdpCallback {
                     device.setDeviceName(deviceName);
                     device.setFrom(from);
                     if (!tryMarkSearchDevice(ip, port)) return;
+                    device.setOriginData(jo);
                     callback.onFindDevice(device);
                 }
                 break;

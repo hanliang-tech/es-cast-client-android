@@ -1,5 +1,7 @@
 package eskit.sdk.support.messenger.client.bean;
 
+import org.json.JSONObject;
+
 import java.util.Objects;
 
 /**
@@ -19,6 +21,8 @@ public class EsDevice {
     private String from;
     /** 协议版本 **/
     private int version;
+
+    private JSONObject originData;
 
     public static EsDevice makeDevice(String ip, int port) {
         EsDevice device = new EsDevice();
@@ -78,6 +82,14 @@ public class EsDevice {
     public EsDevice setVersion(int version) {
         this.version = version;
         return this;
+    }
+
+    public JSONObject getOriginData() {
+        return originData;
+    }
+
+    public void setOriginData(JSONObject originData) {
+        this.originData = originData;
     }
 
     @Override
