@@ -2,8 +2,11 @@ package eskit.sdk.support.messenger.client;
 
 import android.content.Context;
 
+import java.util.HashSet;
+
 import eskit.sdk.support.messenger.client.bean.EsDevice;
 import eskit.sdk.support.messenger.client.core.EsCommand;
+import eskit.sdk.support.messenger.client.core.MdnsDiscovery;
 import eskit.sdk.support.messenger.client.core.UdpHandler;
 
 /**
@@ -13,6 +16,9 @@ public class EsMessenger implements IEsMessenger {
 
     private IEsMessenger.MessengerCallback mDeviceCallback;
     private volatile UdpHandler mUdpHandler;
+    private MdnsDiscovery mMdnsDiscovery;
+    private final Object mDeduplicationLock = new Object();
+    private final HashSet<String> mDiscoveredDevices = new HashSet<>();
 
     private synchronized void initUdpServerIfNeed(Context context) {
         if (mUdpHandler == null) {
@@ -30,6 +36,13 @@ public class EsMessenger implements IEsMessenger {
         stop();
         initUdpServerIfNeed(context);
         mUdpHandler.search(context);
+        mMdnsDiscovery = new MdnsDiscovery();
+        mMdnsDiscovery.start(context, device -> {
+            if (dedup(device)) {
+                MessengerCallback cb = mDeviceCallback;
+                if (cb != null) cb.onFindDevice(device);
+            }
+        });
     }
 
     @Override
@@ -44,6 +57,11 @@ public class EsMessenger implements IEsMessenger {
             mUdpHandler.safeStop();
         }
         mUdpHandler = null;
+        if (mMdnsDiscovery != null) {
+            mMdnsDiscovery.stop();
+        }
+        mMdnsDiscovery = null;
+        clearDedup();
     }
 
     @Override
@@ -73,6 +91,18 @@ public class EsMessenger implements IEsMessenger {
 
     public IEsMessenger.MessengerCallback getCallback() {
         return mDeviceCallback;
+    }
+
+    private boolean dedup(EsDevice device) {
+        synchronized (mDeduplicationLock) {
+            return mDiscoveredDevices.add(device.getDeviceIp() + ":" + device.getDevicePort());
+        }
+    }
+
+    private void clearDedup() {
+        synchronized (mDeduplicationLock) {
+            mDiscoveredDevices.clear();
+        }
     }
 
     //region 单例

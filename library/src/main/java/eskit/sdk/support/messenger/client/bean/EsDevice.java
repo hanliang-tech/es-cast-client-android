@@ -21,6 +21,8 @@ public class EsDevice {
     private String from;
     /** 协议版本 **/
     private int version;
+    /** 发现方式: "udp" / "mdns" **/
+    private String discoveryType;
 
     private JSONObject originData;
 
@@ -84,6 +86,15 @@ public class EsDevice {
         return this;
     }
 
+    public String getDiscoveryType() {
+        return discoveryType;
+    }
+
+    public EsDevice setDiscoveryType(String discoveryType) {
+        this.discoveryType = discoveryType;
+        return this;
+    }
+
     public JSONObject getOriginData() {
         return originData;
     }
@@ -110,6 +121,7 @@ public class EsDevice {
                 ", findTime=" + findTime +
                 ", from='" + from + '\'' +
                 ", version=" + version +
+                ", discoveryType='" + discoveryType + '\'' +
                 '}';
     }
 }
